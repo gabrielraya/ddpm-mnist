@@ -4,7 +4,7 @@ import logging
 from absl import app, flags
 import torch.multiprocessing as mp
 from ml_collections.config_flags import config_flags
-from file_utils import create_workdir, load_and_override_config, log_and_print
+from utils.file_utils import create_workdir, load_and_override_config, log_and_print
 from train import train
 
 

@@ -4,7 +4,7 @@ Library with the samplers and functions related to the sampling processes both f
 import abc
 import torch
 from tqdm import tqdm
-from losses import get_model_fn
+from .losses import get_model_fn
 
 _SAMPLERS = {}
 

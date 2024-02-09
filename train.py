@@ -7,7 +7,7 @@ from datasets import load_data, rescaling_inv
 from file_utils import create_workdir, log_and_print, setup_wandb
 from dist_utils import ddp_setup
 from torch.utils import tensorboard
-from plots import save_image, plot_energy_values
+from plots import save_image
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed import destroy_process_group
 from models.ddpm import DDPM
@@ -171,7 +171,6 @@ def train(rank, config, workdir, log=True):
                     C, H, W = config.data.num_channels, config.data.image_size, config.data.image_size
                     sampling_shape = (config.sampling.generated_batch, C, H, W)
                     uncond_samples, energy_values = sampling.sampling_fn(config, diffusion, model, sampling_shape, rescaling_inv)
-                    fig=plot_energy_values(energy_values, epoch+1, sample_dir)
                     uncond_samples = torch.clip(uncond_samples * 255, 0, 255).int()
                     name = "{}_{}_uncond_generated_{}.png".format(config.model.name, dataset_name, epoch + 1)
                     save_image(uncond_samples, sample_dir, n=config.sampling.generated_batch, pos="square", name=name)
@@ -183,9 +182,6 @@ def train(rank, config, workdir, log=True):
                     uncond_sample_grid = make_grid(uncond_samples.clone().detach()[:n ** 2], nrow=n, padding=1)
                     table.add_data(wandb.Image(uncond_sample_grid.permute(1, 2, 0).to("cpu").numpy()),
                                    epoch + 1, loss.item(), eval_loss.item(), param_count)
-                    # Log the energy values to wandb  
-                    # wandb.log({"plot": fig})
-                    wandb.log({"plot": wandb.Image(fig)})
 
             # save checkpoints
             checkpoint = {

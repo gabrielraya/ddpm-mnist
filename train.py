@@ -4,17 +4,17 @@ import time
 import torch
 import logging
 from datasets import load_data, rescaling_inv
-from file_utils import create_workdir, log_and_print, setup_wandb
-from dist_utils import ddp_setup
+from utils.file_utils import create_workdir, log_and_print, setup_wandb
+from utils.dist_utils import ddp_setup
 from torch.utils import tensorboard
 from plots import save_image
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed import destroy_process_group
 from models.ddpm import DDPM
-from diffusion_lb import GaussianDiffusion
+from diffusion.diffusion_lb import GaussianDiffusion
 from Scheduler import GradualWarmupScheduler
-from losses import get_ddpm_loss_fn
-import sampling
+from diffusion.losses import get_ddpm_loss_fn
+from diffusion import sampling
 import wandb
 from torchvision.utils import make_grid
 

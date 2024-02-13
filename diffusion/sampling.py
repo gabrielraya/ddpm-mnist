@@ -89,7 +89,6 @@ def sampling_fn(config, diffusion, model, shape, inverse_scaler, T=None, denoise
     if T is None:
         T = diffusion.T
 
-    energy_values = []
 
     with torch.no_grad():
         # Initial sample - sampling from tractable prior
@@ -99,10 +98,9 @@ def sampling_fn(config, diffusion, model, shape, inverse_scaler, T=None, denoise
 
         for timestep in tqdm(timesteps):
             t = torch.ones(shape[0], device=config.device) * timestep
-            x, x_mean, energy = sampler.denoise_update_fn(x, t)
-            energy_values.append(energy.item())
+            x, x_mean = sampler.denoise_update_fn(x, t)
 
-        return inverse_scaler(x_mean if denoise else x), energy_values
+        return inverse_scaler(x_mean if denoise else x)
 
 
 ######################### Fast Samplers ########################################

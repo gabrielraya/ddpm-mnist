@@ -170,7 +170,7 @@ def train(rank, config, workdir, log=True):
                     # force embbedding to be a zero vector for unconditional generation
                     C, H, W = config.data.num_channels, config.data.image_size, config.data.image_size
                     sampling_shape = (config.sampling.generated_batch, C, H, W)
-                    uncond_samples, energy_values = sampling.sampling_fn(config, diffusion, model, sampling_shape, rescaling_inv)
+                    uncond_samples = sampling.sampling_fn(config, diffusion, model, sampling_shape, rescaling_inv)
                     uncond_samples = torch.clip(uncond_samples * 255, 0, 255).int()
                     name = "{}_{}_uncond_generated_{}.png".format(config.model.name, dataset_name, epoch + 1)
                     save_image(uncond_samples, sample_dir, n=config.sampling.generated_batch, pos="square", name=name)

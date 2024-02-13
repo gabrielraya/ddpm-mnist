@@ -8,14 +8,15 @@ def get_default_configs():
   config.training = training = ml_collections.ConfigDict()
   config.training.batch_size = 128 #387
   training.numworkers = 3
-  training.n_epochs = 500
-  training.snapshot_freq = 50
+  training.n_epochs = 20
+  training.snapshot_freq = 10
   training.eval_freq = 10
   training.distributed = True
 
   # sampling
   config.sampling = sampling = ml_collections.ConfigDict()
-
+  sampling.generated_batch = 36   # batch size for sampling process
+    
   # evaluation
   config.eval = evaluate = ml_collections.ConfigDict()
   evaluate.checkpoint = 25

@@ -68,13 +68,13 @@ class AncestralSampling(Sampler):
         beta = diffusion.discrete_betas.to(t.device)[t.long()]
         std = diffusion.sqrt_1m_alphas_cumprod.to(t.device)[t.long()]
 
-        score, energy = self.model_fn(x, t)  # set the model either for training or evaluation
-        # score = - predicted_noise / std[:, None, None, None] 
+        predicted_noise = self.model_fn(x, t)  # set the model either for training or evaluation
+        score = - predicted_noise / std[:, None, None, None]
 
         x_mean = (x + beta[:, None, None, None] * score) / torch.sqrt(1. - beta)[:, None, None, None]
         noise = torch.randn_like(x)
         x = x_mean + torch.sqrt(beta)[:, None, None, None] * noise
-        return x, x_mean, energy
+        return x, x_mean
 
     def update_fn(self, x, t):
         return self.denoise_update_fn(x, t)
@@ -82,13 +82,12 @@ class AncestralSampling(Sampler):
 
 def sampling_fn(config, diffusion, model, shape, inverse_scaler, T=None, denoise=True):
     """If T is given then starts from that diffusion time step"""
-    model_fn = get_model_fn(model, train=False)  # get noise predictor model in evaluation mode and spit the energy
+    model_fn = get_model_fn(model, train=False)
     sampler_method = get_sampler(config.sampling.sampler.lower())
     sampler = sampler_method(diffusion, model_fn)
 
     if T is None:
         T = diffusion.T
-
 
     with torch.no_grad():
         # Initial sample - sampling from tractable prior

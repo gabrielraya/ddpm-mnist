@@ -74,8 +74,8 @@ class GaussianDiffusion(DiffusionProcess):
         return self.N
 
     def transition_prob(self, x, timestep):
-        """"Forward step as a result of the forward transition distribution q(x_t|x_t-1)
-            q(x_t|x_{t-1}) = N(x_t|\sqrt{1-beta_t}x_{t-1}, \beta_t*I)
+        """Forward step as a result of the forward transition distribution $q(x_t|x_t-1)$
+            $$q(x_t|x_{t-1}) = N(x_t|\sqrt{1-beta_t}x_{t-1}, \beta_t*I)$$
         Args:
             x : tensor NxCxHxW in range [-1,1]
             timestep: 1D tensor of size N [1,2,..., T]
@@ -86,8 +86,8 @@ class GaussianDiffusion(DiffusionProcess):
         return mean, std
 
     def forward_step(self, x, t):
-        """return sample x_t ~ q(x_t|x_{t-1})
-          x_t = \sqrt{1-beta_t}x_{t-1} + \sqrt{\beta_t} * z ; z~N(0,I)
+        """return sample $x_t ~ q(x_t|x_{t-1})$
+          $$x_t = \sqrt{1-beta_t}x_{t-1} + \sqrt{\beta_t} * z ; z~N(0,I)$$
         Args:
             x : tensor NxCxHxW in range [-1,1]
             t: 1D tensor of size N
@@ -98,17 +98,17 @@ class GaussianDiffusion(DiffusionProcess):
         return x, z
 
     def t_step_transition_prob(self, x, t):
-        """Computes the the t-step forward distribution q(x_t|x_0)
-            q(x_t|x_0) = \mathcal{N}(x_t; sqrt{\bar{\alpha_t}}x_0, (1-\bar{\alpha_t})I)
+        """ Computes the the t-step forward distribution $q(x_t|x_0)$
+            $$q(x_t|x_0) = \mathcal{N}(x_t; sqrt{\bar{\alpha_t}}x_0, (1-\bar{\alpha_t})I)$$
         """
         mean = self.sqrt_alphas_cumprod.to(x.device)[t, None, None, None] * x
         std  = self.sqrt_1m_alphas_cumprod.to(x.device)[t]
         return mean, std
 
     def t_forward_steps(self, x, t):
-        """return sample x_t ~ q(x_t|x_0)
+        """return sample $x_t ~ q(x_t|x_0)$
         Basically reparemeterize the t-step distribution
-        x_t = sqrt{\bar{\alpha_t}}x_0 + \sqrt{(1-\bar{\alpha_t})} * z; z \sim  z~N(0,I)
+        $$x_t = sqrt{\bar{\alpha_t}}x_0 + \sqrt{(1-\bar{\alpha_t})} * z; z \sim  z~N(0,I)$$
         """
         mean, std = self.t_step_transition_prob(x, t)
         z = torch.randn_like(x)

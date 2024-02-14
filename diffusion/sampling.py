@@ -3,6 +3,7 @@ Library with the samplers and functions related to the sampling processes both f
 """
 import abc
 import torch
+import numpy as np
 from tqdm import tqdm
 from .losses import get_model_fn
 
@@ -253,4 +254,25 @@ def get_fast_sampler(config, diffusion, model, inverse_scaler, sampler_name="ddi
         return pndm_sampling_fn
     else:
         raise ValueError(f"Sampler name {sampler_name} unknown.")
+
+
+def get_time_sequence(denoising_steps=10, T=1000, skip_type="uniform", late_t=None):
+
+    if late_t is None:
+        # evenly spaced numbers over a half open interval
+        if skip_type == "uniform":
+            skip = T // denoising_steps
+            seq = np.arange(0, T, skip)
+        elif skip_type == "quad":
+            seq = (np.linspace(0, np.sqrt(T * 0.8), denoising_steps)** 2)
+            seq = [int(s) for s in list(seq)]
+        else:
+            raise NotImplementedError
+    else:
+        # evenly spaced numbers over a specified closed interval.
+        seq = np.linspace(0, late_t, num=denoising_steps, dtype=int)
+
+    seq_next = [-1] + list(seq[:-1])
+
+    return seq, seq_next
 

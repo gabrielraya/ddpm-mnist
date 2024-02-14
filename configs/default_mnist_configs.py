@@ -8,8 +8,8 @@ def get_default_configs():
   config.training = training = ml_collections.ConfigDict()
   config.training.batch_size = 128 #387
   training.numworkers = 3
-  training.n_epochs = 20
-  training.snapshot_freq = 10
+  training.n_epochs = 500
+  training.snapshot_freq = 50
   training.eval_freq = 10
   training.distributed = True
 
@@ -19,7 +19,7 @@ def get_default_configs():
     
   # evaluation
   config.eval = evaluate = ml_collections.ConfigDict()
-  evaluate.checkpoint = 25
+  evaluate.checkpoint = 500
   evaluate.batch_size = 500 #1023
   evaluate.enable_sampling = True
   evaluate.num_samples = 50000
@@ -29,7 +29,7 @@ def get_default_configs():
   config.data = data = ml_collections.ConfigDict()
   data.dataset = 'MNIST'
   data.image_size = 28
-  data.random_flip = True
+  data.random_flip = False
   data.centered = False
   data.uniform_dequantization = False
   data.num_channels = 1 

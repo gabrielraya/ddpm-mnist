@@ -6,7 +6,6 @@ import logging
 from datasets import load_data, rescaling_inv
 from utils.file_utils import create_workdir, log_and_print, setup_wandb
 from utils.dist_utils import ddp_setup
-from torch.utils import tensorboard
 from plots import save_image
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed import destroy_process_group
@@ -43,11 +42,6 @@ def train(rank, config, workdir, log=True):
     create_workdir(sample_dir)
     create_workdir(model_dir)
 
-    # tensorboard settings for logging
-    tb_dir = os.path.join(workdir, "tensorboard")
-    writer = tensorboard.SummaryWriter(tb_dir)
-    create_workdir(tb_dir)
-
     # datasets
     train_loader, test_loader, sampler = load_data(config,
                                                    data_path="../datasets/",
@@ -59,7 +53,6 @@ def train(rank, config, workdir, log=True):
     # Save a batch of training samples for visualization
     x, y = next(iter(train_loader))
     save_image(rescaling_inv(x), workdir=workdir, pos="square", name="{}_data_samples".format(dataset_name))
-
 
     log_and_print("Training U-Net model")
     model = DDPM(config)
@@ -138,7 +131,6 @@ def train(rank, config, workdir, log=True):
                                                optimizer.state_dict()['param_groups'][0]["lr"],
                                                epoch_time, param_count))
 
-        writer.add_scalar("avg_training_loss", avg_loss, epoch)
         if log and rank == 0:
             # 🐝 Log train metrics to wandb
             metrics = {"avg train loss": avg_loss}
@@ -154,7 +146,6 @@ def train(rank, config, workdir, log=True):
                 eval_loss = loss_fn_val(model, x)
                 log_and_print("epoch: %d, eval_loss: %.5e, batch per device:  %d" %
                               (epoch, eval_loss.item(), batch_images.shape[0],))
-                writer.add_scalar("eval_loss", eval_loss.item(), epoch)
                 if log and rank == 0:
                     # 🐝 Log train and validation metrics to wandb
                     val_metrics = {"eval loss": eval_loss.item()}

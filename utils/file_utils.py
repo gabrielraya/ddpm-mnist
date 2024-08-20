@@ -76,7 +76,7 @@ def log_and_print(*args):
 
 def setup_wandb(config, rank, mode="train"):
     """"Initialize the wandb project based on the given mode and config file"""
-    project_name = "et-diff" if mode == "train" else "et-diff-eval"
+    project_name = "erasing-memories" if mode == "train" else "erasing-eval"
 
     wandb.init(
         project=project_name,

@@ -1,8 +1,7 @@
 import torch
 from torchvision import transforms
 import torchvision.datasets as datasets
-from torch.utils.data import DataLoader, DistributedSampler
-from typing import Tuple, Callable
+from torch.utils.data import DataLoader, DistributedSampler, Dataset
 
 
 def rescaling(x):
@@ -20,7 +19,7 @@ def identity(x):
     return x
 
 
-def get_transform(dataset: str = "MNIST", image_size=32, flips=False):
+def get_transform(dataset="MNIST", image_size=32, flips=False):
     """Get transformations for the specified dataset."""
     if flips:
         flip_transform = transforms.RandomHorizontalFlip()
@@ -48,7 +47,21 @@ def get_transform(dataset: str = "MNIST", image_size=32, flips=False):
     return trans, trans_eval
 
 
-def load_data(config=None, data_path="../datasets", num_workers=4, evaluation=False, distributed=True):
+class FilteredDataset(Dataset):
+    """Wrapper to filter the data by class type"""
+    def __init__(self, dataset, target_class=0):
+        self.dataset = dataset
+        self.target_class = target_class
+        self.indices = [i for i, (_, label) in enumerate(self.dataset) if label == self.target_class]
+
+    def __len__(self):
+        return len(self.indices)
+
+    def __getitem__(self, idx):
+        return self.dataset[self.indices[idx]]
+
+
+def load_data(config=None, data_path="../datasets", num_workers=4, evaluation=False, distributed=True, target_class=None):
     """Load dataset based on the configuration."""
     # Get transformation functions
     trans, trans_eval = get_transform(config.data.dataset, config.data.image_size, config.data.random_flip)
@@ -63,6 +76,11 @@ def load_data(config=None, data_path="../datasets", num_workers=4, evaluation=Fa
     else:
         train_dataset = dataset_cls(root=data_path, transform=trans, train=True, download=True)
         test_dataset = dataset_cls(root=data_path, transform=trans_eval, train=False, download=True)
+
+    # Apply filtering by class if target_class is specified
+    if target_class is not None:
+        train_dataset = FilteredDataset(train_dataset, target_class)
+        test_dataset = FilteredDataset(test_dataset, target_class)
 
     # Setup samplers
     train_sampler = DistributedSampler(train_dataset) if distributed else None

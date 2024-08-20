@@ -8,10 +8,10 @@ def get_default_configs():
     # training
     config.training = training = ml_collections.ConfigDict()
     training.batch_size = 128       # batch size per device for training the ET model
-    training.numworkers = 4         # number of workers for training the ET model
-    training.n_epochs = 500       # number of epochs for training
+    training.numworkers = 0         # number of workers for training the ET model
+    training.n_epochs = 800       # number of epochs for training
     training.eval_freq = 10         # epoch interval between two evaluations
-    training.snapshot_freq = 100    # number of epochs to sample
+    training.snapshot_freq = 50    # number of epochs to sample
     training.distributed = True     # train the model in distributed gpus
 
 

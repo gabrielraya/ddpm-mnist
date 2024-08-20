@@ -4,7 +4,7 @@ import time
 import torch
 import logging
 from datasets import load_data, rescaling_inv
-from utils.file_utils import create_workdir,log_and_print, setup_wandb
+from utils.file_utils import create_workdir, log_and_print, setup_wandb
 from utils.dist_utils import ddp_setup
 from plots import save_image
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -32,8 +32,7 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-
-def train(rank, config, workdir, log=True):
+def train(rank, config, workdir, log=True, target_class=None):
     if log and rank == 0:
         setup_wandb(config, rank)
 
@@ -54,6 +53,7 @@ def train(rank, config, workdir, log=True):
                                                    num_workers=config.training.numworkers,
                                                    evaluation=False,
                                                    distributed=config.training.distributed,
+                                                   target_class=target_class
                                                    )
 
     # Save a batch of training samples for visualization

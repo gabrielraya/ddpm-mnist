@@ -16,6 +16,7 @@ flags.DEFINE_string("eval_folder", "eval", "The folder name for storing evaluati
 flags.DEFINE_integer('distributed', 1, 'Distributed training: 1 to enable, 0 to disable')
 flags.DEFINE_integer('log', 1, 'Log in wandb: 1 to enable, 0 to disable')
 flags.DEFINE_string('override_param', None, 'Parameter to override the config, e.g., "learning_rate=0.01".')
+flags.DEFINE_integer('target_class', None, 'If set, filters the dataset to only include this target class.')
 
 flags.mark_flags_as_required(["workdir", "config", "mode"])
 
@@ -37,7 +38,7 @@ def main(argv):
         setup_logging_to_file(FLAGS.workdir)
         world_size = torch.cuda.device_count()
         log_and_print(f"Distributed training\nNumber of gpus: {world_size}")
-        mp.spawn(train, args=(config, FLAGS.workdir, FLAGS.log), nprocs=world_size)
+        mp.spawn(train, args=(config, FLAGS.workdir, FLAGS.log, FLAGS.target_class), nprocs=world_size)
     else:
         logging.info("No option available")
 

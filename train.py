@@ -4,7 +4,7 @@ import time
 import torch
 import logging
 from datasets import load_data, rescaling_inv
-from utils.file_utils import create_workdir, log_and_print, setup_wandb
+from utils.file_utils import create_workdir,log_and_print, setup_wandb
 from utils.dist_utils import ddp_setup
 from plots import save_image
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -18,15 +18,24 @@ import wandb
 from torchvision.utils import make_grid
 
 
+def initialize_directories(workdir):
+    """Initializes the sample and model directories."""
+    sample_dir = os.path.join(workdir, "samples")
+    model_dir = os.path.join(workdir, "model")
+    create_workdir(sample_dir)
+    create_workdir(model_dir)
+    return sample_dir, model_dir
+
+
 def count_parameters(model):
+    """Returns the number of trainable parameters in the model."""
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 
 
 def train(rank, config, workdir, log=True):
     if log and rank == 0:
         setup_wandb(config, rank)
-        # 🐝 Create a wandb Table to log images, labels and predictions to
-        table = wandb.Table(columns=["unconditional", "epoch", "training loss", "eval loss", "Parameter Count"])
 
     world_size = torch.cuda.device_count()
     ddp_setup(rank, world_size)
@@ -37,10 +46,7 @@ def train(rank, config, workdir, log=True):
 
     # experimental settings
     dataset_name = config.data.dataset.lower()
-    sample_dir = os.path.join(workdir, "samples")
-    model_dir = os.path.join(workdir, "model")
-    create_workdir(sample_dir)
-    create_workdir(model_dir)
+    sample_dir, model_dir = initialize_directories(workdir)
 
     # datasets
     train_loader, test_loader, sampler = load_data(config,
@@ -52,24 +58,21 @@ def train(rank, config, workdir, log=True):
 
     # Save a batch of training samples for visualization
     x, y = next(iter(train_loader))
-    save_image(rescaling_inv(x), workdir=workdir, pos="square", name="{}_data_samples".format(dataset_name))
+    n = config.sampling.generated_batch if x.shape[0] >= config.sampling.generated_batch else x.shape[0]
+    save_image(rescaling_inv(x[:n]), workdir=workdir, pos="square", name="{}_data_samples".format(dataset_name))
 
     log_and_print("Training U-Net model")
     model = DDPM(config)
-
-    # Calculate the parameter and log the parameter count as a configuration parameter
     param_count = count_parameters(model)
-
     model.to(device)
+
     # Resume training when intermediate checkpoints are detected
-    last_path = os.path.join(model_dir, 'last_epoch.pt')
-    if os.path.exists(last_path):
-        last_epoch = torch.load(last_path)['last_epoch']
+    last_epoch = 0
+    if os.path.exists(os.path.join(model_dir, 'last_epoch.pt')):
+        last_epoch = torch.load(os.path.join(model_dir, 'last_epoch.pt'))['last_epoch']
         # load checkpoints
         checkpoint = torch.load(os.path.join(model_dir, f'ckpt_{last_epoch}_checkpoint.pt'), map_location='cpu')
         model.load_state_dict(checkpoint['net'])
-    else:
-        last_epoch = 0
 
     # setup the diffusion process
     diffusion = GaussianDiffusion(config.model.beta_min, config.model.beta_max, T=1000)  # defines the diffusion process
@@ -169,10 +172,8 @@ def train(rank, config, workdir, log=True):
                 if log:
                     # 🐝 2️⃣ Log metrics from your script to W&B
                     n = int(math.sqrt(config.sampling.generated_batch))
-                    sample_grid = make_grid(uncond_samples.clone().detach(), nrow=n, padding=0)
-                    uncond_sample_grid = make_grid(uncond_samples.clone().detach()[:n ** 2], nrow=n, padding=1)
-                    table.add_data(wandb.Image(uncond_sample_grid.permute(1, 2, 0).to("cpu").numpy()),
-                                   epoch + 1, loss.item(), eval_loss.item(), param_count)
+                    sample_grid = make_grid(uncond_samples.clone().detach()[:n ** 2], nrow=n, padding=1)
+                    wandb.log({"generated_image": [wandb.Image(sample_grid.float() / 255.0, caption=f"Epoch {epoch}")]})
 
             # save checkpoints
             checkpoint = {
@@ -186,8 +187,6 @@ def train(rank, config, workdir, log=True):
         torch.cuda.empty_cache()
 
     if log and rank == 0:
-        # close table
-        wandb.log({"results_table": table}, commit=False)
         # 🐝 Close your wandb run
         wandb.finish()
 

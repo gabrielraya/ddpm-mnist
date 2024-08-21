@@ -32,7 +32,7 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def train(rank, config, workdir, log=True, target_class=None):
+def train(rank, config, workdir, log=True, target_class=None, selected_attributes=None):
     if log and rank == 0:
         setup_wandb(config, rank)
 
@@ -53,7 +53,8 @@ def train(rank, config, workdir, log=True, target_class=None):
                                                    num_workers=config.training.numworkers,
                                                    evaluation=False,
                                                    distributed=config.training.distributed,
-                                                   target_class=target_class
+                                                   target_class=target_class,
+                                                   selected_attributes=selected_attributes
                                                    )
 
     # Save a batch of training samples for visualization

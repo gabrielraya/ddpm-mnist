@@ -61,7 +61,6 @@ class FilteredDataset(Dataset):
         return self.dataset[self.indices[idx]]
 
 
-
 def load_data(config=None, data_path="../datasets", num_workers=4, evaluation=False, distributed=True,
               target_class=None, selected_attributes=None):
     """Load dataset based on the configuration."""

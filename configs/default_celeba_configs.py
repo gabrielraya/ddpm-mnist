@@ -28,7 +28,7 @@ def get_default_configs():
 
     # data
     config.data = data = ml_collections.ConfigDict()
-    data.dataset = 'CELEBA'
+    data.dataset = 'CelebA'
     data.image_size = 64
     data.random_flip = True
     data.centered = True

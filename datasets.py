@@ -70,7 +70,10 @@ def load_data(config=None, data_path="../datasets", num_workers=4, evaluation=Fa
     trans, trans_eval = get_transform(config.data.dataset, config.data.image_size, config.data.random_flip)
 
     # Get dataset class
-    dataset_cls = getattr(datasets, config.data.dataset)
+    if config.data.dataset == "PinCelebA":
+        dataset_cls = PinsDataset
+    else:
+        dataset_cls = getattr(datasets, config.data.dataset)
 
     # Load dataset with given transformations
     if config.data.dataset == "CelebA":
@@ -94,8 +97,9 @@ def load_data(config=None, data_path="../datasets", num_workers=4, evaluation=Fa
         test_dataset = PinsDataset(root_dir=config.data.data_dir, transform=trans) # Just for now
 
         if target_class is not None:
-            train_dataset = SubsetPinsDataset(original_dataset=train_dataset, selected_labels=target_class, transform=None)
-            test_dataset = SubsetPinsDataset(original_dataset=train_dataset, selected_labels=target_class, transform=None)
+            dataset = PinsDataset(root_dir=config.data.data_dir, transform=trans)
+            train_dataset = SubsetPinsDataset(original_dataset=dataset, selected_labels=target_class, transform=None)
+            test_dataset = SubsetPinsDataset(original_dataset=dataset, selected_labels=target_class, transform=None)
 
     else:
         train_dataset = dataset_cls(root=data_path, transform=trans, train=True, download=True)

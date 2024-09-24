@@ -28,7 +28,7 @@ def get_transform(dataset="MNIST", image_size=32, flips=False):
     else:
         flip_transform = transforms.Lambda(identity)
 
-    if dataset == 'CelebA':
+    if dataset == 'CelebA' or dataset == "PinCelebA":
         trans = transforms.Compose([
             transforms.ToTensor(),
             transforms.Resize(image_size, antialias=True),
@@ -90,7 +90,12 @@ def load_data(config=None, data_path="../datasets", num_workers=4, evaluation=Fa
             test_dataset = torch.utils.data.Subset(test_dataset, selected_indices)
 
     elif config.data.dataset == "PinCelebA":
-        pass
+        train_dataset = PinsDataset(root_dir=config.data.data_dir, transform=trans)
+        test_dataset = PinsDataset(root_dir=config.data.data_dir, transform=trans) # Just for now
+
+        if target_class is not None:
+            train_dataset = SubsetPinsDataset(original_dataset=train_dataset, selected_labels=target_class, transform=None)
+            test_dataset = SubsetPinsDataset(original_dataset=train_dataset, selected_labels=target_class, transform=None)
 
     else:
         train_dataset = dataset_cls(root=data_path, transform=trans, train=True, download=True)

@@ -17,6 +17,7 @@ def get_config():
   # data
   data = config.data
   data.dataset = 'PinCelebA'
+  data.data_dir = "/home/rayarodr/datasets/105_classes_pins_dataset"
   data.centered = True
 
   # model

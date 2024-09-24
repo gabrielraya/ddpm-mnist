@@ -1,4 +1,6 @@
+import os
 import torch
+from PIL import Image
 from torchvision import transforms
 import torchvision.datasets as datasets
 from torch.utils.data import DataLoader, DistributedSampler, Dataset
@@ -71,7 +73,7 @@ def load_data(config=None, data_path="../datasets", num_workers=4, evaluation=Fa
     dataset_cls = getattr(datasets, config.data.dataset)
 
     # Load dataset with given transformations
-    if config.data.dataset == "CelebA" :
+    if config.data.dataset == "CelebA":
         train_dataset = dataset_cls(root=data_path, transform=trans, split='train', target_type='attr', download=True)
         test_dataset = dataset_cls(root=data_path, transform=trans_eval, split='valid', target_type='attr', download=True)
 
@@ -86,6 +88,9 @@ def load_data(config=None, data_path="../datasets", num_workers=4, evaluation=Fa
 
             selected_indices = [i for i, attr in enumerate(test_dataset.attr) if attr[attr_indices_test] == 1]
             test_dataset = torch.utils.data.Subset(test_dataset, selected_indices)
+
+    elif config.data.dataset == "PinCelebA":
+        pass
 
     else:
         train_dataset = dataset_cls(root=data_path, transform=trans, train=True, download=True)
@@ -111,3 +116,64 @@ def load_data(config=None, data_path="../datasets", num_workers=4, evaluation=Fa
         test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True, drop_last=True, pin_memory=True)
 
     return train_loader, test_loader, train_sampler
+
+
+# Custum Classes
+class PinsDataset(Dataset):
+    def __init__(self, root_dir, transform=None):
+        self.root_dir = root_dir
+        self.transform = transform
+
+        # Remove 'pins_' prefix from folder names and create class-to-index mapping
+        self.classes = [d.split('pins_')[1] for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))]
+        self.class_to_idx = {cls_name: i for i, cls_name in enumerate(self.classes)}
+
+        # Collect image paths and labels
+        self.image_paths = []
+        self.labels = []
+        for cls_name, cls_idx in self.class_to_idx.items():
+            cls_folder = os.path.join(root_dir, 'pins_' + cls_name)
+            for img_name in os.listdir(cls_folder):
+                img_path = os.path.join(cls_folder, img_name)
+                self.image_paths.append(img_path)
+                self.labels.append(cls_idx)
+
+    def get_artist_name(self, label):
+        return self.classes[label]
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img_path = self.image_paths[idx]
+        image = Image.open(img_path).convert("RGB")
+        label = self.labels[idx]
+
+        if self.transform:
+            image = self.transform(image)
+
+        return image, label
+
+
+class SubsetPinsDataset(Dataset):
+    def __init__(self, original_dataset, selected_labels, transform=None):
+        self.original_dataset = original_dataset
+        self.transform = transform
+        self.selected_labels = selected_labels
+
+        # Filter image paths and labels based on the selected labels
+        self.filtered_indices = [
+            idx for idx, label in enumerate(original_dataset.labels) if label in selected_labels
+        ]
+
+    def __len__(self):
+        return len(self.filtered_indices)
+
+    def __getitem__(self, idx):
+        original_idx = self.filtered_indices[idx]  # Get the original index
+        image, label = self.original_dataset[original_idx]
+
+        if self.transform:
+            image = self.transform(image)
+
+        return image, label

@@ -72,7 +72,8 @@ def train(rank, config, workdir, log=True, target_class=None, selected_attribute
     if os.path.exists(os.path.join(model_dir, 'last_epoch.pt')):
         last_epoch = torch.load(os.path.join(model_dir, 'last_epoch.pt'))['last_epoch']
         # load checkpoints
-        checkpoint = torch.load(os.path.join(model_dir, f'ckpt_{last_epoch}_checkpoint.pt'), map_location='cpu')
+        map_location = {'cuda:%d' % 0: 'cuda:%d' % rank}
+        checkpoint = torch.load(os.path.join(model_dir, f'ckpt_{last_epoch}_checkpoint.pt'), map_location=map_location)
         model.load_state_dict(checkpoint['net'])
 
     # setup the diffusion process
